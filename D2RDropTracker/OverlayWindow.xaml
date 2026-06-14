@@ -1,0 +1,136 @@
+<Window x:Class="D2RDropTracker.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="D2R Monitor"
+        Width="230" Height="320"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Focusable="False">
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#F7F3E8"/>
+            <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+        </Style>
+    </Window.Resources>
+
+    <Border x:Name="OverlayBorder"
+            Background="#FA10141B"
+            BorderBrush="#D6A84B"
+            BorderThickness="2"
+            CornerRadius="8"
+            Padding="14"
+            Cursor="SizeAll"
+            MouseLeftButtonDown="Overlay_MouseLeftButtonDown">
+        <Grid x:Name="OverlayContent">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="1"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid>
+                <TextBlock Text="D2R 刷图监控"
+                           FontSize="16"
+                           FontWeight="Bold"
+                           Foreground="#F3C969"/>
+                <TextBlock x:Name="LockStateTextBlock"
+                           Text="可拖动"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           Foreground="#9EABB8"
+                           FontSize="11"/>
+            </Grid>
+
+            <TextBlock Grid.Row="1"
+                       x:Name="AreaTextBlock"
+                       Text="区域"
+                       Margin="0,5,0,10"
+                       Foreground="#BCC7D4"
+                       TextTrimming="CharacterEllipsis"/>
+
+            <Grid Grid.Row="2" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="完成次数" Foreground="#9EABB8" FontSize="12"/>
+                    <TextBlock x:Name="RunsTextBlock"
+                               Text="0"
+                               FontSize="30"
+                               FontWeight="Bold"
+                               Foreground="#FFFFFF"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1">
+                    <TextBlock x:Name="TimerStatusTextBlock"
+                               Text="本轮时间 · 进行中"
+                               Foreground="#9EABB8"
+                               FontSize="12"/>
+                    <TextBlock x:Name="ElapsedTextBlock"
+                               Text="00:00"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="#F3C969"/>
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="3" Background="#53606D"/>
+
+            <Grid Grid.Row="4" Margin="0,10,0,6">
+                <TextBlock Text="最近掉落" FontWeight="SemiBold"/>
+                <TextBlock x:Name="DropCountTextBlock"
+                           Text="共 0 件"
+                           HorizontalAlignment="Right"
+                           Foreground="#9EABB8"
+                           FontSize="12"/>
+            </Grid>
+
+            <ItemsControl Grid.Row="5" x:Name="RecentDropsItems">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="#FF252C36"
+                                BorderBrush="#596575"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="7,5"
+                                Margin="0,3">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="•"
+                                           Foreground="#FFD66B"
+                                           FontSize="15"
+                                           FontWeight="Bold"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding}"
+                                           Foreground="#FFFFFFFF"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Grid.Row="6"
+                       x:Name="HotkeyTextBlock"
+                       Text="F8 完成本轮  |  F9 记录掉落"
+                       Foreground="#8F9AA6"
+                       FontSize="11"
+                       HorizontalAlignment="Center"
+                       Margin="0,8,0,0"/>
+        </Grid>
+    </Border>
+</Window>
