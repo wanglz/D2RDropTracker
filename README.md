@@ -2,6 +2,8 @@
 
 Windows 桌面工具，用于记录《暗黑破坏神 2：重制版》的刷图次数、耗时和装备掉落。
 
+<img width="1438" height="753" alt="ScreenShot_2026-06-14_092211_276" src="https://github.com/user-attachments/assets/3a7b8a07-d5a4-4fff-afc2-44885719aa21" />
+
 ## 当前功能
 
 - 自动计时，按 `F8` 完成本轮并开始下一轮
