@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="D2R 掉落统计器" Height="760" Width="1180"
+        Icon="Assets/app.ico"
         MinHeight="650" MinWidth="980"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="20">
@@ -130,6 +131,8 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="8"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <CheckBox x:Name="OverlayLockCheckBox"
@@ -210,14 +213,23 @@
                                 </ComboBox>
                             </StackPanel>
                             <StackPanel Grid.Column="2" Margin="0,0,10,0">
-                                <TextBlock Text="品质" Foreground="{StaticResource MutedBrush}"/>
+                                <TextBlock Text="掉落者" Foreground="{StaticResource MutedBrush}"/>
                                 <ComboBox x:Name="QualityComboBox" Margin="0,4,0,0" SelectedIndex="0">
-                                    <ComboBoxItem Content="暗金"/>
-                                    <ComboBoxItem Content="套装"/>
-                                    <ComboBoxItem Content="稀有"/>
-                                    <ComboBoxItem Content="魔法"/>
-                                    <ComboBoxItem Content="普通"/>
-                                    <ComboBoxItem Content="符文"/>
+                                    <ComboBoxItem Content="未知"/>
+                                    <ComboBoxItem Content="普通怪物"/>
+                                    <ComboBoxItem Content="精英怪"/>
+                                    <ComboBoxItem Content="箱子"/>
+                                    <ComboBoxItem Content="女伯爵"/>
+                                    <ComboBoxItem Content="安达利尔"/>
+                                    <ComboBoxItem Content="召唤者"/>
+                                    <ComboBoxItem Content="督瑞尔"/>
+                                    <ComboBoxItem Content="墨菲斯托"/>
+                                    <ComboBoxItem Content="暗黑破坏神"/>
+                                    <ComboBoxItem Content="巴尔"/>
+                                    <ComboBoxItem Content="尼拉塞克"/>
+                                    <ComboBoxItem Content="暴躁外皮"/>
+                                    <ComboBoxItem Content="奶牛"/>
+                                    <ComboBoxItem Content="其他"/>
                                 </ComboBox>
                             </StackPanel>
                             <Button Grid.Column="3" Content="添加掉落" VerticalAlignment="Bottom"
@@ -259,7 +271,7 @@
                                 <DataGridTextColumn Header="时间" Binding="{Binding DroppedAtDisplay}" Width="120"/>
                                 <DataGridTextColumn Header="物品" Binding="{Binding ItemName}" Width="*"/>
                                 <DataGridTextColumn Header="分类" Binding="{Binding Category}" Width="100"/>
-                                <DataGridTextColumn Header="品质" Binding="{Binding Quality}" Width="100"/>
+                                <DataGridTextColumn Header="掉落者" Binding="{Binding Quality}" Width="110"/>
                                 <DataGridTextColumn Header="场次" Binding="{Binding RunNumber}" Width="70"/>
                             </DataGrid.Columns>
                         </DataGrid>
@@ -277,11 +289,23 @@
                 <Border Background="{StaticResource PanelBrush}" CornerRadius="8" Padding="18">
                     <StackPanel>
                         <TextBlock Text="总览" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,14"/>
-                        <UniformGrid Columns="3">
+                        <UniformGrid Columns="4">
                             <StackPanel>
                                 <TextBlock x:Name="TotalRunsTextBlock" Text="0" FontSize="28" FontWeight="Bold"
                                            Foreground="{StaticResource GoldBrush}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="完成场次" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="历史总完成" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock x:Name="CurrentRunsTextBlock" Text="0" FontSize="28" FontWeight="Bold"
+                                           Foreground="{StaticResource GoldBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="当前轮数" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
+                                <Button Content="重置当前"
+                                        Padding="8,3"
+                                        Margin="0,8,0,0"
+                                        HorizontalAlignment="Center"
+                                        Background="#657382"
+                                        BorderBrush="#4D5966"
+                                        Click="ResetCurrentRunsButton_Click"/>
                             </StackPanel>
                             <StackPanel>
                                 <TextBlock x:Name="TotalDropsTextBlock" Text="0" FontSize="28" FontWeight="Bold"

@@ -35,6 +35,7 @@ public partial class MainWindow : Window
     private RunSession _activeRun = null!;
     private OverlayWindow? _overlayWindow;
     private int _completedRuns;
+    private int _currentRunCount;
     private int _totalDrops;
     private bool _isRunning = true;
     private TimeSpan _elapsedAtResume = TimeSpan.Zero;
@@ -63,6 +64,7 @@ public partial class MainWindow : Window
             _database.Initialize();
             _database.CreateDailyBackup();
             _settings = _settingsService.Load();
+            _currentRunCount = Math.Max(0, _settings.CurrentRunCount);
             _database.CleanupOldBackups(_settings.BackupRetentionDays);
             InitializeSettingsControls();
             ReloadCatalogSuggestions();
@@ -124,9 +126,13 @@ public partial class MainWindow : Window
         _elapsedAtResume = TimeSpan.Zero;
         _timerResumedAt = now;
         _isRunning = true;
+        _currentRunCount++;
+        _settings.CurrentRunCount = _currentRunCount;
+        _settingsService.Save(_settings);
         NotesTextBox.Clear();
         StartPauseButton.Content = "暂停";
-        StatusTextBlock.Text = $"已完成第 {_database.GetCompletedRunCount()} 场，用时 {FormatDuration(elapsed)}";
+        StatusTextBlock.Text =
+            $"本次已刷 {_currentRunCount} 轮；历史总完成 {_database.GetCompletedRunCount()} 场，用时 {FormatDuration(elapsed)}";
         LoadDashboard();
         RefreshTimer();
     }
@@ -175,6 +181,16 @@ public partial class MainWindow : Window
         _database.ResetRunStart(_activeRun.Id, now, _isRunning);
         StatusTextBlock.Text = _isRunning ? "本轮计时已重置并重新开始" : "本轮计时已重置，当前仍为暂停状态";
         RefreshTimer();
+    }
+
+    private void ResetCurrentRunsButton_Click(object sender, RoutedEventArgs e)
+    {
+        _currentRunCount = 0;
+        _settings.CurrentRunCount = 0;
+        _settingsService.Save(_settings);
+        CurrentRunsTextBlock.Text = "0";
+        StatusTextBlock.Text = "当前轮数已重置，历史总完成次数不受影响";
+        UpdateOverlay();
     }
 
     private void OverlayLockCheckBox_Changed(object sender, RoutedEventArgs e)
@@ -249,6 +265,12 @@ public partial class MainWindow : Window
         }
 
         _activeRun = restoredRun;
+        if (_currentRunCount > 0)
+        {
+            _currentRunCount--;
+            _settings.CurrentRunCount = _currentRunCount;
+            _settingsService.Save(_settings);
+        }
         CharacterTextBox.Text = _activeRun.Character;
         SelectComboItem(AreaComboBox, _activeRun.Area);
         SelectComboItem(DifficultyComboBox, _activeRun.Difficulty);
@@ -414,7 +436,7 @@ public partial class MainWindow : Window
 
         var records = _database.GetAllDrops();
         var csv = new StringBuilder();
-        csv.AppendLine("掉落时间,物品名称,分类,品质,场次,角色,区域,难度,场次开始时间,场次结束时间");
+        csv.AppendLine("掉落时间,物品名称,分类,掉落者,场次,角色,区域,难度,场次开始时间,场次结束时间");
         foreach (var record in records)
         {
             csv.AppendLine(string.Join(",",
@@ -452,7 +474,6 @@ public partial class MainWindow : Window
             return;
         }
         SelectComboItem(CategoryComboBox, item.Category);
-        SelectComboItem(QualityComboBox, item.Quality);
         ItemNameTextBox.Text = item.Name;
     }
 
@@ -462,6 +483,7 @@ public partial class MainWindow : Window
         _completedRuns = summary.TotalRuns;
         _totalDrops = summary.TotalDrops;
         TotalRunsTextBlock.Text = summary.TotalRuns.ToString();
+        CurrentRunsTextBlock.Text = _currentRunCount.ToString();
         TotalDropsTextBlock.Text = summary.TotalDrops.ToString();
         AverageTimeTextBlock.Text = summary.TotalRuns == 0
             ? "--:--"
@@ -483,11 +505,12 @@ public partial class MainWindow : Window
     {
         _overlayWindow?.UpdateSnapshot(
             SelectedText(AreaComboBox),
+            _currentRunCount,
             _completedRuns,
             _totalDrops,
             GetCurrentElapsed(),
             _isRunning,
-            _recentDrops.Select(drop => $"{drop.ItemName}  [{drop.Category}]"));
+            _recentDrops.Select(drop => $"{drop.RunNumber} {drop.ItemName}  [{drop.Category}]"));
     }
 
     private TimeSpan GetCurrentElapsed() =>

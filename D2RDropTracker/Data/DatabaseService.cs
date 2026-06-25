@@ -451,7 +451,7 @@ public sealed class DatabaseService
             """;
         command.Parameters.AddWithValue("$itemName", Normalize(itemName, "未命名物品"));
         command.Parameters.AddWithValue("$category", Normalize(category, "其他"));
-        command.Parameters.AddWithValue("$quality", Normalize(quality, "普通"));
+        command.Parameters.AddWithValue("$quality", Normalize(quality, "未知"));
         command.Parameters.AddWithValue("$id", dropId);
         command.ExecuteNonQuery();
     }
@@ -470,7 +470,7 @@ public sealed class DatabaseService
         command.Parameters.AddWithValue("$runId", runId);
         command.Parameters.AddWithValue("$itemName", Normalize(itemName, "未命名物品"));
         command.Parameters.AddWithValue("$category", Normalize(category, "其他"));
-        command.Parameters.AddWithValue("$quality", Normalize(quality, "普通"));
+        command.Parameters.AddWithValue("$quality", Normalize(quality, "未知"));
         command.Parameters.AddWithValue("$id", dropId);
         command.ExecuteNonQuery();
     }

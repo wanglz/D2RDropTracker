@@ -47,6 +47,13 @@ public partial class DropEditWindow : Window
                 return;
             }
         }
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var legacyItem = new System.Windows.Controls.ComboBoxItem { Content = value };
+            comboBox.Items.Add(legacyItem);
+            comboBox.SelectedItem = legacyItem;
+            return;
+        }
         comboBox.SelectedIndex = 0;
     }
 }

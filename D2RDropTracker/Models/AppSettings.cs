@@ -15,4 +15,5 @@ public sealed class AppSettings
     public double OverlayScale { get; set; } = 1.0;
     public int OverlayDropCount { get; set; } = 5;
     public int BackupRetentionDays { get; set; } = 30;
+    public int CurrentRunCount { get; set; }
 }

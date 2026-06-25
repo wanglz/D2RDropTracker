@@ -16,7 +16,7 @@
                 <DataGridTextColumn Header="删除时间" Binding="{Binding DeletedAtDisplay}" Width="170"/>
                 <DataGridTextColumn Header="物品" Binding="{Binding ItemName}" Width="*"/>
                 <DataGridTextColumn Header="分类" Binding="{Binding Category}" Width="100"/>
-                <DataGridTextColumn Header="品质" Binding="{Binding Quality}" Width="100"/>
+                <DataGridTextColumn Header="掉落者" Binding="{Binding Quality}" Width="110"/>
                 <DataGridTextColumn Header="原场次" Binding="{Binding RunNumber}" Width="80"/>
             </DataGrid.Columns>
         </DataGrid>

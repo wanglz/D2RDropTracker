@@ -35,14 +35,23 @@
             </ComboBox>
         </StackPanel>
         <StackPanel Grid.Row="4">
-            <TextBlock Text="品质" Foreground="{StaticResource MutedBrush}"/>
+            <TextBlock Text="掉落者" Foreground="{StaticResource MutedBrush}"/>
             <ComboBox x:Name="QualityComboBox" Margin="0,5,0,0">
-                <ComboBoxItem Content="暗金"/>
-                <ComboBoxItem Content="套装"/>
-                <ComboBoxItem Content="稀有"/>
-                <ComboBoxItem Content="魔法"/>
-                <ComboBoxItem Content="普通"/>
-                <ComboBoxItem Content="符文"/>
+                <ComboBoxItem Content="未知"/>
+                <ComboBoxItem Content="普通怪物"/>
+                <ComboBoxItem Content="精英怪"/>
+                <ComboBoxItem Content="箱子"/>
+                <ComboBoxItem Content="女伯爵"/>
+                <ComboBoxItem Content="安达利尔"/>
+                <ComboBoxItem Content="召唤者"/>
+                <ComboBoxItem Content="督瑞尔"/>
+                <ComboBoxItem Content="墨菲斯托"/>
+                <ComboBoxItem Content="暗黑破坏神"/>
+                <ComboBoxItem Content="巴尔"/>
+                <ComboBoxItem Content="尼拉塞克"/>
+                <ComboBoxItem Content="暴躁外皮"/>
+                <ComboBoxItem Content="奶牛"/>
+                <ComboBoxItem Content="其他"/>
             </ComboBox>
         </StackPanel>
         <StackPanel Grid.Row="6">
