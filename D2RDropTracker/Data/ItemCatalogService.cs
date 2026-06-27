@@ -17,9 +17,7 @@ public sealed class ItemCatalogService
     public ItemCatalogService()
     {
         _builtInPath = Path.Combine(AppContext.BaseDirectory, "Data", "items.json");
-        var userDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "D2RDropTracker");
+        var userDirectory = AppDataPaths.GetPath();
         Directory.CreateDirectory(userDirectory);
         _customPath = Path.Combine(userDirectory, "custom-items.json");
         Reload();

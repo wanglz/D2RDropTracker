@@ -8,6 +8,10 @@ public sealed class DeletedDropRecord
     public string ItemName { get; init; } = "";
     public string Category { get; init; } = "";
     public string Quality { get; init; } = "";
+    public string ScreenshotPath { get; init; } = "";
+    public string TradeType { get; init; } = "";
+    public string TradeRunes { get; init; } = "";
+    public string TradeMoney { get; init; } = "";
     public DateTime DroppedAt { get; init; }
     public DateTime DeletedAt { get; init; }
     public int RunNumber { get; init; }

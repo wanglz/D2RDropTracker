@@ -12,9 +12,7 @@ public sealed class DatabaseService
 
     public DatabaseService(string? dataDirectoryOverride = null)
     {
-        var dataDirectory = dataDirectoryOverride ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "D2RDropTracker");
+        var dataDirectory = dataDirectoryOverride ?? AppDataPaths.GetPath();
         Directory.CreateDirectory(dataDirectory);
         _databasePath = Path.Combine(dataDirectory, "tracker.db");
         _backupDirectory = Path.Combine(dataDirectory, "Backups");
@@ -48,6 +46,10 @@ public sealed class DatabaseService
                 ItemName TEXT NOT NULL,
                 Category TEXT NOT NULL,
                 Quality TEXT NOT NULL,
+                ScreenshotPath TEXT NOT NULL DEFAULT '',
+                TradeType TEXT NOT NULL DEFAULT '',
+                TradeRunes TEXT NOT NULL DEFAULT '',
+                TradeMoney TEXT NOT NULL DEFAULT '',
                 DroppedAt TEXT NOT NULL,
                 FOREIGN KEY (RunId) REFERENCES Runs(Id) ON DELETE CASCADE
             );
@@ -59,6 +61,10 @@ public sealed class DatabaseService
                 ItemName TEXT NOT NULL,
                 Category TEXT NOT NULL,
                 Quality TEXT NOT NULL,
+                ScreenshotPath TEXT NOT NULL DEFAULT '',
+                TradeType TEXT NOT NULL DEFAULT '',
+                TradeRunes TEXT NOT NULL DEFAULT '',
+                TradeMoney TEXT NOT NULL DEFAULT '',
                 DroppedAt TEXT NOT NULL,
                 DeletedAt TEXT NOT NULL
             );
@@ -83,6 +89,22 @@ public sealed class DatabaseService
             "ALTER TABLE Runs ADD COLUMN Tags TEXT NOT NULL DEFAULT '';");
         EnsureColumn(connection, "Runs", "Notes",
             "ALTER TABLE Runs ADD COLUMN Notes TEXT NOT NULL DEFAULT '';");
+        EnsureColumn(connection, "Drops", "ScreenshotPath",
+            "ALTER TABLE Drops ADD COLUMN ScreenshotPath TEXT NOT NULL DEFAULT '';");
+        EnsureColumn(connection, "DeletedDrops", "ScreenshotPath",
+            "ALTER TABLE DeletedDrops ADD COLUMN ScreenshotPath TEXT NOT NULL DEFAULT '';");
+        EnsureColumn(connection, "Drops", "TradeType",
+            "ALTER TABLE Drops ADD COLUMN TradeType TEXT NOT NULL DEFAULT '';");
+        EnsureColumn(connection, "Drops", "TradeRunes",
+            "ALTER TABLE Drops ADD COLUMN TradeRunes TEXT NOT NULL DEFAULT '';");
+        EnsureColumn(connection, "Drops", "TradeMoney",
+            "ALTER TABLE Drops ADD COLUMN TradeMoney TEXT NOT NULL DEFAULT '';");
+        EnsureColumn(connection, "DeletedDrops", "TradeType",
+            "ALTER TABLE DeletedDrops ADD COLUMN TradeType TEXT NOT NULL DEFAULT '';");
+        EnsureColumn(connection, "DeletedDrops", "TradeRunes",
+            "ALTER TABLE DeletedDrops ADD COLUMN TradeRunes TEXT NOT NULL DEFAULT '';");
+        EnsureColumn(connection, "DeletedDrops", "TradeMoney",
+            "ALTER TABLE DeletedDrops ADD COLUMN TradeMoney TEXT NOT NULL DEFAULT '';");
     }
 
     public string CreateDailyBackup()
@@ -299,19 +321,21 @@ public sealed class DatabaseService
         command.ExecuteNonQuery();
     }
 
-    public void AddDrop(long runId, string itemName, string category, string quality, DateTime droppedAt)
+    public void AddDrop(long runId, string itemName, string category, string quality,
+        DateTime droppedAt, string screenshotPath = "")
     {
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText =
             """
-            INSERT INTO Drops (RunId, ItemName, Category, Quality, DroppedAt)
-            VALUES ($runId, $itemName, $category, $quality, $droppedAt);
+            INSERT INTO Drops (RunId, ItemName, Category, Quality, ScreenshotPath, DroppedAt)
+            VALUES ($runId, $itemName, $category, $quality, $screenshotPath, $droppedAt);
             """;
         command.Parameters.AddWithValue("$runId", runId);
         command.Parameters.AddWithValue("$itemName", itemName);
         command.Parameters.AddWithValue("$category", category);
         command.Parameters.AddWithValue("$quality", quality);
+        command.Parameters.AddWithValue("$screenshotPath", screenshotPath.Trim());
         command.Parameters.AddWithValue("$droppedAt", droppedAt.ToString("O"));
         command.ExecuteNonQuery();
     }
@@ -325,8 +349,10 @@ public sealed class DatabaseService
         archive.CommandText =
             """
             INSERT INTO DeletedDrops (
-                OriginalDropId, RunId, ItemName, Category, Quality, DroppedAt, DeletedAt)
-            SELECT Id, RunId, ItemName, Category, Quality, DroppedAt, $deletedAt
+                OriginalDropId, RunId, ItemName, Category, Quality, ScreenshotPath,
+                TradeType, TradeRunes, TradeMoney, DroppedAt, DeletedAt)
+            SELECT Id, RunId, ItemName, Category, Quality, ScreenshotPath,
+                   TradeType, TradeRunes, TradeMoney, DroppedAt, $deletedAt
             FROM Drops WHERE Id = $id;
             """;
         archive.Parameters.AddWithValue("$deletedAt", DateTime.Now.ToString("O"));
@@ -347,13 +373,21 @@ public sealed class DatabaseService
         using var command = connection.CreateCommand();
         command.CommandText =
             """
-            INSERT INTO Drops (RunId, ItemName, Category, Quality, DroppedAt)
-            VALUES ($runId, $itemName, $category, $quality, $droppedAt);
+            INSERT INTO Drops (
+                RunId, ItemName, Category, Quality, ScreenshotPath, TradeType,
+                TradeRunes, TradeMoney, DroppedAt)
+            VALUES (
+                $runId, $itemName, $category, $quality, $screenshotPath, $tradeType,
+                $tradeRunes, $tradeMoney, $droppedAt);
             """;
         command.Parameters.AddWithValue("$runId", record.RunId);
         command.Parameters.AddWithValue("$itemName", record.ItemName);
         command.Parameters.AddWithValue("$category", record.Category);
         command.Parameters.AddWithValue("$quality", record.Quality);
+        command.Parameters.AddWithValue("$screenshotPath", record.ScreenshotPath);
+        command.Parameters.AddWithValue("$tradeType", record.TradeType);
+        command.Parameters.AddWithValue("$tradeRunes", record.TradeRunes);
+        command.Parameters.AddWithValue("$tradeMoney", record.TradeMoney);
         command.Parameters.AddWithValue("$droppedAt", record.DroppedAt.ToString("O"));
         command.ExecuteNonQuery();
     }
@@ -365,7 +399,8 @@ public sealed class DatabaseService
         command.CommandText =
             """
             SELECT dd.Id, dd.OriginalDropId, dd.RunId, dd.ItemName, dd.Category,
-                   dd.Quality, dd.DroppedAt, dd.DeletedAt,
+                   dd.Quality, dd.ScreenshotPath, dd.TradeType, dd.TradeRunes,
+                   dd.TradeMoney, dd.DroppedAt, dd.DeletedAt,
                    COALESCE((SELECT COUNT(*) FROM Runs numbered
                              WHERE numbered.Id <= dd.RunId), 0) AS RunNumber
             FROM DeletedDrops dd
@@ -383,9 +418,13 @@ public sealed class DatabaseService
                 ItemName = reader.GetString(3),
                 Category = reader.GetString(4),
                 Quality = reader.GetString(5),
-                DroppedAt = DateTime.Parse(reader.GetString(6)),
-                DeletedAt = DateTime.Parse(reader.GetString(7)),
-                RunNumber = reader.GetInt32(8)
+                ScreenshotPath = reader.GetString(6),
+                TradeType = reader.GetString(7),
+                TradeRunes = reader.GetString(8),
+                TradeMoney = reader.GetString(9),
+                DroppedAt = DateTime.Parse(reader.GetString(10)),
+                DeletedAt = DateTime.Parse(reader.GetString(11)),
+                RunNumber = reader.GetInt32(12)
             });
         }
         return result;
@@ -399,8 +438,11 @@ public sealed class DatabaseService
         restore.Transaction = transaction;
         restore.CommandText =
             """
-            INSERT INTO Drops (RunId, ItemName, Category, Quality, DroppedAt)
-            SELECT RunId, ItemName, Category, Quality, DroppedAt
+            INSERT INTO Drops (
+                RunId, ItemName, Category, Quality, ScreenshotPath, TradeType,
+                TradeRunes, TradeMoney, DroppedAt)
+            SELECT RunId, ItemName, Category, Quality, ScreenshotPath, TradeType,
+                   TradeRunes, TradeMoney, DroppedAt
             FROM DeletedDrops
             WHERE Id = $id
               AND EXISTS (SELECT 1 FROM Runs WHERE Runs.Id = DeletedDrops.RunId);
@@ -439,38 +481,63 @@ public sealed class DatabaseService
         command.ExecuteNonQuery();
     }
 
-    public void UpdateDrop(long dropId, string itemName, string category, string quality)
+    public void UpdateDrop(long dropId, string itemName, string category, string quality,
+        string screenshotPath = "", string tradeType = "", string tradeRunes = "",
+        string tradeMoney = "")
     {
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText =
             """
             UPDATE Drops
-            SET ItemName = $itemName, Category = $category, Quality = $quality
+            SET ItemName = $itemName,
+                Category = $category,
+                Quality = $quality,
+                ScreenshotPath = $screenshotPath,
+                TradeType = $tradeType,
+                TradeRunes = $tradeRunes,
+                TradeMoney = $tradeMoney
             WHERE Id = $id;
             """;
         command.Parameters.AddWithValue("$itemName", Normalize(itemName, "未命名物品"));
         command.Parameters.AddWithValue("$category", Normalize(category, "其他"));
         command.Parameters.AddWithValue("$quality", Normalize(quality, "未知"));
+        command.Parameters.AddWithValue("$screenshotPath", screenshotPath.Trim());
+        command.Parameters.AddWithValue("$tradeType", tradeType.Trim());
+        command.Parameters.AddWithValue("$tradeRunes", tradeRunes.Trim());
+        command.Parameters.AddWithValue("$tradeMoney", tradeMoney.Trim());
         command.Parameters.AddWithValue("$id", dropId);
         command.ExecuteNonQuery();
     }
 
     public void UpdateDrop(
-        long dropId, long runId, string itemName, string category, string quality)
+        long dropId, long runId, string itemName, string category, string quality,
+        string screenshotPath = "", string tradeType = "", string tradeRunes = "",
+        string tradeMoney = "")
     {
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText =
             """
             UPDATE Drops
-            SET RunId = $runId, ItemName = $itemName, Category = $category, Quality = $quality
+            SET RunId = $runId,
+                ItemName = $itemName,
+                Category = $category,
+                Quality = $quality,
+                ScreenshotPath = $screenshotPath,
+                TradeType = $tradeType,
+                TradeRunes = $tradeRunes,
+                TradeMoney = $tradeMoney
             WHERE Id = $id AND EXISTS (SELECT 1 FROM Runs WHERE Id = $runId);
             """;
         command.Parameters.AddWithValue("$runId", runId);
         command.Parameters.AddWithValue("$itemName", Normalize(itemName, "未命名物品"));
         command.Parameters.AddWithValue("$category", Normalize(category, "其他"));
         command.Parameters.AddWithValue("$quality", Normalize(quality, "未知"));
+        command.Parameters.AddWithValue("$screenshotPath", screenshotPath.Trim());
+        command.Parameters.AddWithValue("$tradeType", tradeType.Trim());
+        command.Parameters.AddWithValue("$tradeRunes", tradeRunes.Trim());
+        command.Parameters.AddWithValue("$tradeMoney", tradeMoney.Trim());
         command.Parameters.AddWithValue("$id", dropId);
         command.ExecuteNonQuery();
     }
@@ -723,7 +790,8 @@ public sealed class DatabaseService
         ApplyRunFilter(command, conditions, filter);
         command.CommandText =
             $"""
-            SELECT d.Id, d.RunId, d.ItemName, d.Category, d.Quality, d.DroppedAt,
+            SELECT d.Id, d.RunId, d.ItemName, d.Category, d.Quality, d.ScreenshotPath,
+                   d.TradeType, d.TradeRunes, d.TradeMoney, d.DroppedAt,
                    r.Character, r.Area, r.Difficulty,
                    (SELECT COUNT(*) FROM Runs numbered WHERE numbered.Id <= r.Id) AS RunNumber,
                    r.StartedAt, r.EndedAt
@@ -816,7 +884,8 @@ public sealed class DatabaseService
         using var command = connection.CreateCommand();
         command.CommandText =
             """
-            SELECT d.Id, d.RunId, d.ItemName, d.Category, d.Quality, d.DroppedAt,
+            SELECT d.Id, d.RunId, d.ItemName, d.Category, d.Quality, d.ScreenshotPath,
+                   d.TradeType, d.TradeRunes, d.TradeMoney, d.DroppedAt,
                    r.Character, r.Area, r.Difficulty,
                    (SELECT COUNT(*) FROM Runs numbered WHERE numbered.Id <= r.Id) AS RunNumber,
                    r.StartedAt, r.EndedAt
@@ -835,7 +904,8 @@ public sealed class DatabaseService
         using var command = connection.CreateCommand();
         command.CommandText =
             """
-            SELECT d.Id, d.RunId, d.ItemName, d.Category, d.Quality, d.DroppedAt,
+            SELECT d.Id, d.RunId, d.ItemName, d.Category, d.Quality, d.ScreenshotPath,
+                   d.TradeType, d.TradeRunes, d.TradeMoney, d.DroppedAt,
                    r.Character, r.Area, r.Difficulty,
                    (SELECT COUNT(*) FROM Runs numbered WHERE numbered.Id <= r.Id) AS RunNumber,
                    r.StartedAt, r.EndedAt
@@ -893,13 +963,17 @@ public sealed class DatabaseService
                 ItemName = reader.GetString(2),
                 Category = reader.GetString(3),
                 Quality = reader.GetString(4),
-                DroppedAt = DateTime.Parse(reader.GetString(5)),
-                Character = reader.GetString(6),
-                Area = reader.GetString(7),
-                Difficulty = reader.GetString(8),
-                RunNumber = reader.GetInt32(9),
-                RunStartedAt = DateTime.Parse(reader.GetString(10)),
-                RunEndedAt = reader.IsDBNull(11) ? null : DateTime.Parse(reader.GetString(11))
+                ScreenshotPath = reader.GetString(5),
+                TradeType = reader.GetString(6),
+                TradeRunes = reader.GetString(7),
+                TradeMoney = reader.GetString(8),
+                DroppedAt = DateTime.Parse(reader.GetString(9)),
+                Character = reader.GetString(10),
+                Area = reader.GetString(11),
+                Difficulty = reader.GetString(12),
+                RunNumber = reader.GetInt32(13),
+                RunStartedAt = DateTime.Parse(reader.GetString(14)),
+                RunEndedAt = reader.IsDBNull(15) ? null : DateTime.Parse(reader.GetString(15))
             });
         }
         return result;

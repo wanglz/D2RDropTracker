@@ -6,10 +6,7 @@ namespace D2RDropTracker.Data;
 public static class LogService
 {
     private static readonly object SyncRoot = new();
-    private static readonly string LogDirectory = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "D2RDropTracker",
-        "Logs");
+    private static readonly string LogDirectory = AppDataPaths.GetPath("Logs");
 
     public static string CurrentLogPath =>
         Path.Combine(LogDirectory, $"d2r-tracker-{DateTime.Today:yyyy-MM-dd}.log");

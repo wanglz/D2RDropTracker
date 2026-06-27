@@ -10,9 +10,7 @@ public sealed class SettingsService
 
     public SettingsService()
     {
-        var directory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "D2RDropTracker");
+        var directory = AppDataPaths.GetPath();
         Directory.CreateDirectory(directory);
         _settingsPath = Path.Combine(directory, "settings.json");
     }

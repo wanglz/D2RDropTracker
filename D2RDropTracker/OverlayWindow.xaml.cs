@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
+using D2RDropTracker.Data;
 
 namespace D2RDropTracker;
 
@@ -31,10 +32,7 @@ public partial class OverlayWindow : Window
     public OverlayWindow()
     {
         InitializeComponent();
-        _positionFile = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "D2RDropTracker",
-            "overlay-position.txt");
+        _positionFile = AppDataPaths.GetPath("overlay-position.txt");
         RecentDropsItems.ItemsSource = _recentDrops;
         SourceInitialized += OverlayWindow_SourceInitialized;
         LocationChanged += (_, _) => SavePosition();

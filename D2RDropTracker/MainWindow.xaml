@@ -266,12 +266,15 @@
                         </Grid>
                         <DataGrid x:Name="RecentDropsGrid" AutoGenerateColumns="False"
                                   SelectionMode="Single" AlternationCount="2"
+                                  MouseLeftButtonUp="RecentDropsGrid_MouseLeftButtonUp"
                                   MouseDoubleClick="RecentDropsGrid_MouseDoubleClick">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="时间" Binding="{Binding DroppedAtDisplay}" Width="120"/>
-                                <DataGridTextColumn Header="物品" Binding="{Binding ItemName}" Width="*"/>
-                                <DataGridTextColumn Header="分类" Binding="{Binding Category}" Width="100"/>
-                                <DataGridTextColumn Header="掉落者" Binding="{Binding Quality}" Width="110"/>
+                                <DataGridTextColumn Header="时间" Binding="{Binding DroppedAtDisplay}" Width="82"/>
+                                <DataGridTextColumn Header="物品" Binding="{Binding ItemName}" Width="2*"/>
+                                <DataGridTextColumn Header="分类" Binding="{Binding Category}" Width="68"/>
+                                <DataGridTextColumn Header="掉落者" Binding="{Binding Quality}" Width="96"/>
+                                <DataGridTextColumn Header="交易" Binding="{Binding TradeDisplay}" Width="150"/>
+                                <DataGridTextColumn Header="截图" Binding="{Binding ScreenshotState}" Width="60"/>
                                 <DataGridTextColumn Header="场次" Binding="{Binding RunNumber}" Width="70"/>
                             </DataGrid.Columns>
                         </DataGrid>

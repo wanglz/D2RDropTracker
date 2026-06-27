@@ -4,8 +4,10 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using D2RDropTracker.Data;
 using D2RDropTracker.Models;
@@ -44,6 +46,7 @@ public partial class MainWindow : Window
     private Forms.NotifyIcon? _trayIcon;
     private bool _isExiting;
     private DeletedDropRecord? _lastDeletedDrop;
+    private string? _pendingScreenshotPath;
     private IntPtr _windowHandle;
 
     public MainWindow()
@@ -312,14 +315,40 @@ public partial class MainWindow : Window
     {
         try
         {
-            var path = _screenshotService.CapturePrimaryScreen();
-            StatusTextBlock.Text = $"截图已保存，待人工识别：{path}";
+            var fullScreenPath = _screenshotService.CapturePrimaryScreen();
+            var selector = new RegionSelectionWindow(fullScreenPath) { Owner = this };
+            if (selector.ShowDialog() != true || selector.SelectedRegion is null)
+            {
+                TryDeleteFile(fullScreenPath);
+                StatusTextBlock.Text = "截图已取消";
+                return;
+            }
+
+            var path = _screenshotService.CropCapturedImage(fullScreenPath, selector.SelectedRegion.Value);
+            TryDeleteFile(fullScreenPath);
+            _pendingScreenshotPath = path;
+            StatusTextBlock.Text = $"截图已保存，将自动关联到下一条掉落：{path}";
         }
         catch (Exception ex)
         {
             LogService.Write("截图失败", ex);
             WpfMessageBox.Show(ex.Message, "截图失败",
                 MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private static void TryDeleteFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+            // Temporary full-screen captures are best-effort cleanup only.
         }
     }
 
@@ -335,11 +364,15 @@ public partial class MainWindow : Window
             return;
         }
 
+        var screenshotPath = _pendingScreenshotPath ?? "";
         _database.AddDrop(_activeRun.Id, itemName, SelectedText(CategoryComboBox),
-            SelectedText(QualityComboBox), DateTime.Now);
+            SelectedText(QualityComboBox), DateTime.Now, screenshotPath);
+        _pendingScreenshotPath = null;
         ItemNameTextBox.Text = "";
         ItemNameTextBox.Focus();
-        StatusTextBlock.Text = $"已记录掉落：{itemName}";
+        StatusTextBlock.Text = string.IsNullOrWhiteSpace(screenshotPath)
+            ? $"已记录掉落：{itemName}"
+            : $"已记录掉落并关联截图：{itemName}";
         LoadDashboard();
     }
 
@@ -394,8 +427,66 @@ public partial class MainWindow : Window
 
     private void EditDropButton_Click(object sender, RoutedEventArgs e) => EditSelectedDrop();
 
-    private void RecentDropsGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e) =>
+    private void RecentDropsGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (IsScreenshotCell(e.OriginalSource))
+        {
+            ShowSelectedDropScreenshot();
+            e.Handled = true;
+            return;
+        }
+
         EditSelectedDrop();
+    }
+
+    private void RecentDropsGrid_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!IsScreenshotCell(e.OriginalSource))
+        {
+            return;
+        }
+
+        ShowSelectedDropScreenshot();
+    }
+
+    private void ShowSelectedDropScreenshot()
+    {
+        if (RecentDropsGrid.SelectedItem is not DropRecord selected ||
+            string.IsNullOrWhiteSpace(selected.ScreenshotPath))
+        {
+            return;
+        }
+
+        if (!File.Exists(selected.ScreenshotPath))
+        {
+            StatusTextBlock.Text = $"截图文件不存在：{selected.ScreenshotPath}";
+            return;
+        }
+
+        new ScreenshotPreviewWindow(selected.ScreenshotPath) { Owner = this }.Show();
+    }
+
+    private static bool IsScreenshotCell(object source)
+    {
+        var cell = FindVisualParent<DataGridCell>(source as DependencyObject);
+        return string.Equals(cell?.Column.Header?.ToString(), "截图", StringComparison.Ordinal);
+    }
+
+    private static T? FindVisualParent<T>(DependencyObject? child)
+        where T : DependencyObject
+    {
+        while (child is not null)
+        {
+            if (child is T found)
+            {
+                return found;
+            }
+
+            child = VisualTreeHelper.GetParent(child);
+        }
+
+        return null;
+    }
 
     private void EditSelectedDrop()
     {
@@ -405,7 +496,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        var editor = new DropEditWindow(selected, _database.GetRunChoices()) { Owner = this };
+        var editor = new DropEditWindow(
+            selected,
+            _database.GetRunChoices(),
+            _screenshotService.GetDirectory())
+        {
+            Owner = this
+        };
         if (editor.ShowDialog() != true)
         {
             return;
@@ -416,7 +513,11 @@ public partial class MainWindow : Window
             editor.RunIdValue,
             editor.ItemNameValue,
             editor.CategoryValue,
-            editor.QualityValue);
+            editor.QualityValue,
+            editor.ScreenshotPathValue,
+            editor.TradeTypeValue,
+            editor.TradeRunesValue,
+            editor.TradeMoneyValue);
         StatusTextBlock.Text = $"已更新掉落：{editor.ItemNameValue}";
         LoadDashboard();
     }
@@ -436,12 +537,14 @@ public partial class MainWindow : Window
 
         var records = _database.GetAllDrops();
         var csv = new StringBuilder();
-        csv.AppendLine("掉落时间,物品名称,分类,掉落者,场次,角色,区域,难度,场次开始时间,场次结束时间");
+        csv.AppendLine("掉落时间,物品名称,分类,掉落者,交易类型,换得符文,卖出金额,截图路径,场次,角色,区域,难度,场次开始时间,场次结束时间");
         foreach (var record in records)
         {
             csv.AppendLine(string.Join(",",
                 Csv(record.DroppedAt.ToString("yyyy-MM-dd HH:mm:ss")),
                 Csv(record.ItemName), Csv(record.Category), Csv(record.Quality),
+                Csv(record.TradeType), Csv(record.TradeRunes), Csv(record.TradeMoney),
+                Csv(record.ScreenshotPath),
                 record.RunNumber, Csv(record.Character), Csv(record.Area), Csv(record.Difficulty),
                 Csv(record.RunStartedAt.ToString("yyyy-MM-dd HH:mm:ss")),
                 Csv(record.RunEndedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "")));
