@@ -1,6 +1,7 @@
 # D2R 掉落统计器
 
 Windows 桌面工具，用于记录《暗黑破坏神 2：重制版》的刷图次数、耗时和装备掉落。
+<img width="1503" height="753" alt="ScreenShot_2026-06-25_155114_000" src="https://github.com/user-attachments/assets/9ef8a867-20c5-47e1-8a02-606cbca34bde" />
 
 ## 当前功能
 
