@@ -613,7 +613,7 @@ public partial class MainWindow : Window
             _totalDrops,
             GetCurrentElapsed(),
             _isRunning,
-            _recentDrops.Select(drop => $"{drop.RunNumber} {drop.ItemName}  [{drop.Category}]"));
+            _recentDrops);
     }
 
     private TimeSpan GetCurrentElapsed() =>

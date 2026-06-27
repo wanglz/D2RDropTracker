@@ -135,22 +135,31 @@
                                 BorderThickness="1"
                                 CornerRadius="4"
                                 Padding="7,5"
-                                Margin="0,3">
+                                Margin="0,3"
+                                PreviewMouseLeftButtonDown="RecentDrop_PreviewMouseLeftButtonDown">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="14"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="•"
                                            Foreground="#FFD66B"
                                            FontSize="15"
                                            FontWeight="Bold"/>
                                 <TextBlock Grid.Column="1"
-                                           Text="{Binding}"
+                                           Text="{Binding DisplayText}"
                                            Foreground="#FFFFFFFF"
                                            FontSize="14"
                                            FontWeight="SemiBold"
                                            TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Column="2"
+                                           Text="图"
+                                           Foreground="#F3C969"
+                                           FontSize="12"
+                                           FontWeight="Bold"
+                                           Margin="6,0,0,0"
+                                           Visibility="{Binding ScreenshotVisibility}"/>
                             </Grid>
                         </Border>
                     </DataTemplate>

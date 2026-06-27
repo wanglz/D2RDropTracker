@@ -8,6 +8,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using D2RDropTracker.Data;
+using D2RDropTracker.Models;
 
 namespace D2RDropTracker;
 
@@ -22,7 +23,7 @@ public partial class OverlayWindow : Window
     private const double MinimumWidth = 200;
     private const double MinimumHeight = 260;
 
-    private readonly ObservableCollection<string> _recentDrops = [];
+    private readonly ObservableCollection<OverlayDropItem> _recentDrops = [];
     private readonly string _positionFile;
     private bool _positionLoaded;
     private bool _isLocked;
@@ -45,7 +46,7 @@ public partial class OverlayWindow : Window
         int totalDrops,
         TimeSpan elapsed,
         bool isRunning,
-        IEnumerable<string> recentDrops)
+        IEnumerable<DropRecord> recentDrops)
     {
         AreaTextBlock.Text = string.IsNullOrWhiteSpace(area) ? "其他区域" : area;
         CurrentRunsTextBlock.Text = currentRuns.ToString();
@@ -62,12 +63,12 @@ public partial class OverlayWindow : Window
         _recentDrops.Clear();
         foreach (var item in recentDrops.Take(_visibleDropCount))
         {
-            _recentDrops.Add(item);
+            _recentDrops.Add(OverlayDropItem.FromRecord(item));
         }
 
         if (_recentDrops.Count == 0)
         {
-            _recentDrops.Add("暂无记录");
+            _recentDrops.Add(OverlayDropItem.Placeholder);
         }
     }
 
@@ -178,6 +179,31 @@ public partial class OverlayWindow : Window
 
         DragMove();
         SavePosition();
+    }
+
+    private void RecentDrop_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_isLocked || !TryGetClickableDrop(sender, out var item))
+        {
+            return;
+        }
+        
+        if (!File.Exists(item.ScreenshotPath))
+        {
+            LockStateTextBlock.Text = "图片不存在";
+            LockStateTextBlock.Foreground = new System.Windows.Media.SolidColorBrush(
+                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FFB45E"));
+            return;
+        }
+
+        new ScreenshotPreviewWindow(item.ScreenshotPath) { Owner = this }.Show();
+        e.Handled = true;
+    }
+
+    private static bool TryGetClickableDrop(object sender, out OverlayDropItem item)
+    {
+        item = (sender as FrameworkElement)?.DataContext as OverlayDropItem ?? OverlayDropItem.Placeholder;
+        return item.HasScreenshot;
     }
 
     private void ResizeThumb_DragDelta(object sender, DragDeltaEventArgs e)
@@ -303,4 +329,23 @@ public partial class OverlayWindow : Window
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
     private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr newStyle);
+
+    private sealed class OverlayDropItem
+    {
+        public static OverlayDropItem Placeholder { get; } = new("暂无记录", "");
+
+        public string DisplayText { get; }
+        public string ScreenshotPath { get; }
+        public bool HasScreenshot => !string.IsNullOrWhiteSpace(ScreenshotPath);
+        public Visibility ScreenshotVisibility => HasScreenshot ? Visibility.Visible : Visibility.Collapsed;
+
+        private OverlayDropItem(string displayText, string screenshotPath)
+        {
+            DisplayText = displayText;
+            ScreenshotPath = screenshotPath;
+        }
+
+        public static OverlayDropItem FromRecord(DropRecord record) =>
+            new($"{record.RunNumber} {record.ItemName}  [{record.Category}]", record.ScreenshotPath);
+    }
 }
